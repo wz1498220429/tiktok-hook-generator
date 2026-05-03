@@ -110,3 +110,11 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 - Instructions:
   - `lib/rate-limit.ts` 的 `setBucket` 接口接收毫秒窗口，并在内部统一转换为 Redis 需要的秒级 TTL；调用方不要重复做秒转换。
   - Upstash 读取 JSON 字符串时可能直接返回反序列化后的对象，`lib/persistent-kv.ts` 需要把非字符串值重新 `JSON.stringify` 后交给上层解析。
+
+[TikTok Hook Master AI Vercel 安全部署约定]
+- Date: 2026-05-03
+- Context: Agent 在执行 Vercel 部署报错排查时发现
+- Category: 构建方法
+- Instructions:
+  - Vercel 会拦截已知存在高危安全公告的 Next.js 版本，即使 `next build` 本身已经成功。
+  - 对于当前 15.5.x 发布线，需至少升级到 Next.js `15.5.9`，并同步升级 `eslint-config-next` 到同版本，才能避免被安全策略阻断部署。
