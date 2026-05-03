@@ -4,10 +4,11 @@ import { HookCard, type HookCardData } from './hook-card';
 
 type HookResultsListProps = {
   hooks: HookCardData[];
+  onCopy?: (hook: HookCardData) => void;
   onRegenerate: (hook: HookCardData) => Promise<void>;
 };
 
-export function HookResultsList({ hooks, onRegenerate }: HookResultsListProps) {
+export function HookResultsList({ hooks, onCopy, onRegenerate }: HookResultsListProps) {
   if (!hooks.length) {
     return (
       <section className="glass-panel rounded-[2rem] p-8 text-slate-300 shadow-neon">
@@ -23,7 +24,7 @@ export function HookResultsList({ hooks, onRegenerate }: HookResultsListProps) {
   return (
     <section className="space-y-5">
       {hooks.map((hook) => (
-        <HookCard key={hook.id} hook={hook} onRegenerate={onRegenerate} />
+        <HookCard key={hook.id} hook={hook} onCopy={onCopy} onRegenerate={onRegenerate} />
       ))}
     </section>
   );

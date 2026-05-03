@@ -84,3 +84,29 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
   - API 路由统一通过 `ApiError` 和 `toApiError` 返回用户可读错误，避免直接暴露原始 provider 异常文本。
   - `/api/generate-hooks` 使用基于客户端地址的每分钟 8 次限流，`/api/regenerate-hook` 使用每分钟 12 次限流。
   - 命中限流时接口返回 `429` 和 `Retry-After`，前端会在错误文案中追加等待秒数提示。
+
+[TikTok Hook Master AI 统计与配额面板约定]
+- Date: 2026-05-03
+- Context: Agent 在执行访问统计、埋点和配额面板实现时发现
+- Category: 代码模式
+- Instructions:
+  - 统计与埋点使用轻量级内存存储，适合本地预览和单实例部署验证，不保证跨实例持久化。
+  - 前端通过 `/api/telemetry` 上报事件，通过 `/api/usage-stats` 拉取聚合统计与当前客户端配额快照。
+  - Hook 分类标签会通过规范化层收敛为 `Curiosity Gap`、`Loss Aversion`、`Social Proof`、`Pattern Interrupt`、`Storytime`、`Contrarian Take`、`Authority Hook` 等统一标签。
+
+[TikTok Hook Master AI 持久化统计约定]
+- Date: 2026-05-03
+- Context: Agent 在执行 Redis 持久化统计接入时发现
+- Category: 依赖关系
+- Instructions:
+  - 当 `UPSTASH_REDIS_REST_URL` 与 `UPSTASH_REDIS_REST_TOKEN` 存在时，统计计数与限流桶会持久化到 Upstash Redis。
+  - 当 Redis 环境变量缺失时，系统自动回退到进程内存存储，以保留本地开发与无配置预览能力。
+  - 持久化层通过 `lib/persistent-kv.ts` 统一封装，避免 API 路由直接依赖具体存储实现。
+
+[TikTok Hook Master AI 限流 TTL 单位约定]
+- Date: 2026-05-03
+- Context: Agent 在执行 Redis 持久化限流验证时发现
+- Category: 代码模式
+- Instructions:
+  - `lib/rate-limit.ts` 的 `setBucket` 接口接收毫秒窗口，并在内部统一转换为 Redis 需要的秒级 TTL；调用方不要重复做秒转换。
+  - Upstash 读取 JSON 字符串时可能直接返回反序列化后的对象，`lib/persistent-kv.ts` 需要把非字符串值重新 `JSON.stringify` 后交给上层解析。

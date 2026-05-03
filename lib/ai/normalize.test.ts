@@ -17,7 +17,7 @@ describe('normalizeHooks', () => {
       1,
     );
 
-    expect(result).toEqual([{ text: 'This hook stays under fifteen words.', category: 'The Curiosity Gap' }]);
+    expect(result).toEqual([{ text: 'This hook stays under fifteen words.', category: 'Curiosity Gap' }]);
   });
 
   it('throws when not enough hooks remain', () => {

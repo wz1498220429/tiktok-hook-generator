@@ -9,7 +9,7 @@ export const runtime = 'edge';
 export async function POST(request: Request) {
   try {
     const clientAddress = getClientAddress(request);
-    enforceRateLimit(`regenerate:${clientAddress}`, 12, 60_000);
+    await enforceRateLimit(`regenerate:${clientAddress}`, 12, 60_000);
 
     const payload = await request.json();
     const input = parseRegenerationInput(payload);

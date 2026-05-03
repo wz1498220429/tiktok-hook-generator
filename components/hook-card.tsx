@@ -12,10 +12,11 @@ export type HookCardData = {
 
 type HookCardProps = {
   hook: HookCardData;
+  onCopy?: (hook: HookCardData) => void;
   onRegenerate: (hook: HookCardData) => Promise<void>;
 };
 
-export function HookCard({ hook, onRegenerate }: HookCardProps) {
+export function HookCard({ hook, onCopy, onRegenerate }: HookCardProps) {
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -23,6 +24,7 @@ export function HookCard({ hook, onRegenerate }: HookCardProps) {
     try {
       await navigator.clipboard.writeText(hook.text);
       setCopied(true);
+      onCopy?.(hook);
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
       setCopied(false);
