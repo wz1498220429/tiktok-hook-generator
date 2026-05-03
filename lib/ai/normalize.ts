@@ -1,6 +1,7 @@
 import type { GeneratedHook } from './types';
 
 const MAX_WORDS = 15;
+const FALLBACK_CATEGORY = 'AI Suggested Hook';
 
 export function countWords(text: string): number {
   return text
@@ -19,10 +20,15 @@ export function normalizeHooks(items: unknown, minimumCount = 5): GeneratedHook[
       if (!item || typeof item !== 'object') return null;
 
       const candidate = item as Record<string, unknown>;
-      const text = typeof candidate.text === 'string' ? candidate.text.trim() : '';
-      const category = typeof candidate.category === 'string' ? candidate.category.trim() : '';
+      const text =
+        typeof candidate.text === 'string'
+          ? candidate.text.trim()
+          : typeof candidate.hook === 'string'
+            ? candidate.hook.trim()
+            : '';
+      const category = typeof candidate.category === 'string' ? candidate.category.trim() : FALLBACK_CATEGORY;
 
-      if (!text || !category) return null;
+      if (!text) return null;
       if (countWords(text) > MAX_WORDS) return null;
 
       return { text, category } satisfies GeneratedHook;

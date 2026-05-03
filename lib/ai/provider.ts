@@ -5,13 +5,86 @@ import type { GeneratedHook, HookAiProvider, HookGenerationInput, RegenerateHook
 
 type ProviderName = 'deepseek' | 'gemini';
 
-function getProviderName(): ProviderName {
-  const value = process.env.AI_PROVIDER?.toLowerCase();
-  return value === 'gemini' ? 'gemini' : 'deepseek';
+type ProviderResolution = {
+  provider: ProviderName | null;
+  mode: 'live' | 'demo';
+};
+
+const hookArraySchema = {
+  type: 'object',
+  properties: {
+    hooks: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          text: {
+            type: 'string',
+            description: 'A short English hook under 15 words.',
+          },
+          category: {
+            type: 'string',
+            description: 'The persuasion angle label for the hook.',
+          },
+        },
+        required: ['text', 'category'],
+      },
+    },
+  },
+  required: ['hooks'],
+} as const;
+
+const singleHookSchema = {
+  type: 'object',
+  properties: {
+    hook: {
+      type: 'object',
+      properties: {
+        text: {
+          type: 'string',
+          description: 'A short English hook under 15 words.',
+        },
+        category: {
+          type: 'string',
+          description: 'The persuasion angle label for the hook.',
+        },
+      },
+      required: ['text', 'category'],
+    },
+  },
+  required: ['hook'],
+} as const;
+
+export function resolveProvider(): ProviderResolution {
+  const preferred = process.env.AI_PROVIDER?.toLowerCase();
+  const hasDeepSeek = Boolean(process.env.DEEPSEEK_API_KEY);
+  const hasGemini = Boolean(process.env.GEMINI_API_KEY);
+
+  if (preferred === 'deepseek' && hasDeepSeek) {
+    return { provider: 'deepseek', mode: 'live' };
+  }
+
+  if (preferred === 'gemini' && hasGemini) {
+    return { provider: 'gemini', mode: 'live' };
+  }
+
+  if (hasDeepSeek) {
+    return { provider: 'deepseek', mode: 'live' };
+  }
+
+  if (hasGemini) {
+    return { provider: 'gemini', mode: 'live' };
+  }
+
+  return { provider: null, mode: 'demo' };
 }
 
-function hasConfiguredProvider(): boolean {
-  return Boolean(process.env.DEEPSEEK_API_KEY || process.env.GEMINI_API_KEY);
+function getDeepSeekModel(): string {
+  return process.env.DEEPSEEK_MODEL?.trim() || 'deepseek-chat';
+}
+
+function getGeminiModel(): string {
+  return process.env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash';
 }
 
 async function parseJsonResponse(response: Response): Promise<unknown> {
@@ -43,8 +116,9 @@ async function callDeepSeek(input: HookGenerationInput | RegenerateHookInput, si
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'deepseek-chat',
+      model: getDeepSeekModel(),
       temperature: 0.9,
+      max_tokens: single ? 300 : 800,
       messages: [
         { role: 'system', content: hookSystemPrompt },
         { role: 'user', content: userPrompt },
@@ -54,7 +128,8 @@ async function callDeepSeek(input: HookGenerationInput | RegenerateHookInput, si
   });
 
   if (!response.ok) {
-    throw new Error('DeepSeek request failed');
+    const detail = await response.text();
+    throw new Error(`DeepSeek request failed: ${detail || response.statusText}`);
   }
 
   const payload = (await response.json()) as {
@@ -79,11 +154,12 @@ async function callGemini(input: HookGenerationInput | RegenerateHookInput, sing
 
   const userPrompt = single ? buildRegeneratePrompt(input as RegenerateHookInput) : buildHookUserPrompt(input);
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${getGeminiModel()}:generateContent`,
     {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
       },
       body: JSON.stringify({
         systemInstruction: {
@@ -93,13 +169,15 @@ async function callGemini(input: HookGenerationInput | RegenerateHookInput, sing
         generationConfig: {
           temperature: 0.9,
           responseMimeType: 'application/json',
+          responseJsonSchema: single ? singleHookSchema : hookArraySchema,
         },
       }),
     },
   );
 
   if (!response.ok) {
-    throw new Error('Gemini request failed');
+    const detail = await response.text();
+    throw new Error(`Gemini request failed: ${detail || response.statusText}`);
   }
 
   const payload = (await response.json()) as {
@@ -118,20 +196,22 @@ async function callGemini(input: HookGenerationInput | RegenerateHookInput, sing
 
 export class ConfiguredHookProvider implements HookAiProvider {
   async generateHooks(input: HookGenerationInput): Promise<GeneratedHook[]> {
-    if (!hasConfiguredProvider()) {
+    const resolution = resolveProvider();
+    if (resolution.mode === 'demo' || !resolution.provider) {
       return createDemoHooks(input);
     }
 
-    const provider = getProviderName();
+    const provider = resolution.provider;
     return provider === 'gemini' ? ((await callGemini(input)) as GeneratedHook[]) : ((await callDeepSeek(input)) as GeneratedHook[]);
   }
 
   async regenerateHook(input: RegenerateHookInput): Promise<GeneratedHook> {
-    if (!hasConfiguredProvider()) {
+    const resolution = resolveProvider();
+    if (resolution.mode === 'demo' || !resolution.provider) {
       return createDemoReplacement(input);
     }
 
-    const provider = getProviderName();
+    const provider = resolution.provider;
     return provider === 'gemini' ? ((await callGemini(input, true)) as GeneratedHook) : ((await callDeepSeek(input, true)) as GeneratedHook);
   }
 }

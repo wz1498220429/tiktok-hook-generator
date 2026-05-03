@@ -25,4 +25,10 @@ describe('normalizeHooks', () => {
       'Not enough valid hooks returned',
     );
   });
+
+  it('accepts hook alias and fallback category for provider drift', () => {
+    const result = normalizeHooks([{ hook: 'You are wasting money on flights every single month.' }], 1);
+
+    expect(result).toEqual([{ text: 'You are wasting money on flights every single month.', category: 'AI Suggested Hook' }]);
+  });
 });

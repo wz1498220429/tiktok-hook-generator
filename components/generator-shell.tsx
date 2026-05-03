@@ -31,45 +31,55 @@ export function GeneratorShell({ eyebrow, title, description, vertical }: Genera
     setError(null);
     setContext(payload);
 
-    const response = await fetch('/api/generate-hooks', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const response = await fetch('/api/generate-hooks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
 
-    const data = (await response.json()) as { hooks?: GeneratedHook[]; error?: string };
-    if (!response.ok || !data.hooks) {
-      setError(data.error ?? 'Unable to generate hooks right now.');
-      return;
+      const data = (await response.json()) as { hooks?: GeneratedHook[]; error?: string; retryAfterSeconds?: number };
+      if (!response.ok || !data.hooks) {
+        const suffix = data.retryAfterSeconds ? ` Try again in about ${data.retryAfterSeconds} seconds.` : '';
+        setError((data.error ?? 'Unable to generate hooks right now.') + suffix);
+        return;
+      }
+
+      setHooks(toCardData(data.hooks));
+    } catch {
+      setError('The request could not reach the server. Check your connection and try again.');
     }
-
-    setHooks(toCardData(data.hooks));
   }
 
   async function handleRegenerate(hook: HookCardData) {
     if (!context) return;
 
-    const response = await fetch('/api/regenerate-hook', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        ...context,
-        currentHook: hook.text,
-        category: hook.category,
-      }),
-    });
+    try {
+      const response = await fetch('/api/regenerate-hook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...context,
+          currentHook: hook.text,
+          category: hook.category,
+        }),
+      });
 
-    const data = (await response.json()) as { hook?: GeneratedHook; error?: string };
-    if (!response.ok || !data.hook) {
-      setError(data.error ?? 'Unable to regenerate this hook right now.');
-      return;
+      const data = (await response.json()) as { hook?: GeneratedHook; error?: string; retryAfterSeconds?: number };
+      if (!response.ok || !data.hook) {
+        const suffix = data.retryAfterSeconds ? ` Try again in about ${data.retryAfterSeconds} seconds.` : '';
+        setError((data.error ?? 'Unable to regenerate this hook right now.') + suffix);
+        return;
+      }
+
+      setHooks((current) => current.map((item) => (item.id === hook.id ? { ...item, id: `${data.hook?.category}-${Date.now()}`, ...data.hook } : item)));
+    } catch {
+      setError('The request could not reach the server. Check your connection and try again.');
     }
-
-    setHooks((current) => current.map((item) => (item.id === hook.id ? { ...item, id: `${data.hook?.category}-${Date.now()}`, ...data.hook } : item)));
   }
 
   return (

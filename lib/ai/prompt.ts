@@ -6,6 +6,9 @@ export const hookSystemPrompt = [
   'Each hook must be in English, under 15 words, punchy, and ready for TikTok, Reels, or Shorts.',
   'Return JSON only.',
   'Each item must include: text, category.',
+  'Do not use any alternative field names like hook, line, or caption.',
+  'The JSON shape for batches must be: {"hooks":[{"text":"...","category":"..."}]}.',
+  'The JSON shape for a single replacement must be: {"hook":{"text":"...","category":"..."}}.',
 ].join(' ');
 
 export function buildHookUserPrompt(input: HookGenerationInput): string {
@@ -25,5 +28,6 @@ export function buildRegeneratePrompt(input: RegenerateHookInput): string {
     `Current Hook: ${input.currentHook ?? 'Unknown'}`,
     `Category: ${input.category ?? 'Any high-retention category'}`,
     'Generate exactly one replacement hook with a different angle.',
+    'Return exactly one JSON object under the hook key.',
   ].join('\n');
 }

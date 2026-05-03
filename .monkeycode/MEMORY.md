@@ -58,3 +58,29 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
   - 未预置的 `/generator/[vertical]` 路径不返回 404，而是使用占位配置继续渲染可工作的生成器页面。
   - 主生成按钮的 loading 态内嵌 Lottie 动画，符合需求文档中的生成中反馈要求。
   - 项目根目录提供 `.env.example`，用于声明 `AI_PROVIDER`、`DEEPSEEK_API_KEY` 和 `GEMINI_API_KEY`。
+
+[TikTok Hook Master AI 真实 AI 集成约定]
+- Date: 2026-05-03
+- Context: Agent 在执行真实 AI API 联调准备时发现
+- Category: 依赖关系
+- Instructions:
+  - DeepSeek 使用 OpenAI 兼容的 `https://api.deepseek.com/chat/completions`，默认模型为 `deepseek-chat`，可通过 `DEEPSEEK_MODEL` 覆盖。
+  - Gemini 使用 `generateContent` 接口、`x-goog-api-key` 头和 `responseJsonSchema` 进行结构化 JSON 输出，默认模型为 `gemini-2.5-flash`，可通过 `GEMINI_MODEL` 覆盖。
+  - provider 选择逻辑优先使用 `AI_PROVIDER`，若首选 provider 未配置密钥则自动回退到另一个可用 provider；两个都不可用时使用 demo hooks。
+
+[TikTok Hook Master AI DeepSeek 已验通]
+- Date: 2026-05-03
+- Context: Agent 在执行真实 DeepSeek API 联调时发现
+- Category: 测试方法
+- Instructions:
+  - 将 `.env.local` 设置为 `AI_PROVIDER=deepseek` 并提供有效的 `DEEPSEEK_API_KEY` 后，`/api/generate-hooks` 与 `/api/regenerate-hook` 已成功返回真实结果。
+  - DeepSeek 偶尔会偏离指定 JSON 字段，因此归一化层需要兼容 `hook` 字段别名并为缺失 `category` 提供兜底值。
+
+[TikTok Hook Master AI API 防护约定]
+- Date: 2026-05-03
+- Context: Agent 在执行 API 错误提示与限流增强时发现
+- Category: 代码模式
+- Instructions:
+  - API 路由统一通过 `ApiError` 和 `toApiError` 返回用户可读错误，避免直接暴露原始 provider 异常文本。
+  - `/api/generate-hooks` 使用基于客户端地址的每分钟 8 次限流，`/api/regenerate-hook` 使用每分钟 12 次限流。
+  - 命中限流时接口返回 `429` 和 `Retry-After`，前端会在错误文案中追加等待秒数提示。
