@@ -118,3 +118,11 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 - Instructions:
   - Vercel 会拦截已知存在高危安全公告的 Next.js 版本，即使 `next build` 本身已经成功。
   - 对于当前 15.5.x 发布线，需至少升级到 Next.js `15.5.9`，并同步升级 `eslint-config-next` 到同版本，才能避免被安全策略阻断部署。
+
+[TikTok Hook Master AI Vercel 观测接入约定]
+- Date: 2026-05-03
+- Context: Agent 在执行 Vercel Analytics 与 Speed Insights 接入时发现
+- Category: 构建方法
+- Instructions:
+  - Next.js App Router 项目统一在 `app/layout.tsx` 中挂载 Vercel 官方组件，分别使用 `@vercel/analytics/next` 的 `<Analytics />` 和 `@vercel/speed-insights/next` 的 `<SpeedInsights />`。
+  - 安装这两个 Vercel 包时，当前仓库因 `vitest/vite` 的可选 peer 解析可能需要使用 `npm install --legacy-peer-deps`。
